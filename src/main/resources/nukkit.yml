@@ -1,0 +1,7 @@
+name: AdvancedWarpAPI
+main: net.comorevi.cosse.warpapi.AdvancedWarpAPI
+version: 1.0.0
+load: POSTWORLD
+author: popkechupki
+api: ["1.0.0"]
+description: "ワープシステムに使うAPI"
