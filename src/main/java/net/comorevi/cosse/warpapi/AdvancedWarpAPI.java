@@ -39,6 +39,11 @@ public class AdvancedWarpAPI extends PluginBase {
         initialize();
     }
 
+    @Override
+    public void onDisable() {
+        getProvider().disConnectSQL();
+    }
+
     private void initialize() {
         this.getDataFolder().mkdirs();
         this.formProcessor = new FormProcessor();

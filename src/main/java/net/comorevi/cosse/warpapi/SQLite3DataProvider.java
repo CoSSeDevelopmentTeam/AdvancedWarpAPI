@@ -2,19 +2,16 @@ package net.comorevi.cosse.warpapi;
 
 import cn.nukkit.level.Position;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class SQLite3DataProvider {
 
-    public static final int POINT_TYPE_PUBLIC = 0;
-    public static final int POINT_TYPE_PRIVATE = 1;
-    public static final int POINT_TYPE_PASS_LIMITED = 2;
-
     private AdvancedWarpAPI plugin;
-    private Statement statement;
+    private Connection connection = null;
 
     public SQLite3DataProvider(AdvancedWarpAPI plugin) {
         this.plugin = plugin;
@@ -24,13 +21,12 @@ public class SQLite3DataProvider {
     private void connectSQL() {
         try {
             Class.forName("org.sqlite.JDBC");
-            Connection connection = null;
             connection = DriverManager.getConnection("jdbc:sqlite:" + plugin.getDataFolder().toString() + "/DataDB.db");
-            statement = connection.createStatement();
+            Statement statement = connection.createStatement();
             statement.setQueryTimeout(30);
             statement.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS OriginalPoint (" +
-                            " id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," +
+                            " id INTEGER PRIMARY KEY AUTOINCREMENT," +
                             " owner TEXT NOT NULL," +
                             " name TEXT NOT NULL," +
                             " x INTEGER NOT NULL," +
@@ -40,8 +36,19 @@ public class SQLite3DataProvider {
                             " type INTEGER NOT NULL," +
                             " pass TEXT )"
             );
+            statement.close();
         } catch(Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    void disConnectSQL() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -52,12 +59,25 @@ public class SQLite3DataProvider {
      * @return 作成されていたら真、作成されていなければ偽を返す。
      * @throws Exception 引数がnullだった場合。
      */
-    private boolean existsOriginalPointByPointName(String pointname) {
+    public boolean existsOriginalPointByPointName(String pointname) {
+        try {
+            String sql = "SELECT name FROM OriginalPoint WHERE name = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setQueryTimeout(30);
+            statement.setString(1, pointname);
+
+            boolean result = statement.executeQuery().next();
+            statement.close();
+
+            return result;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
     /**
-     * 特定のポイントを新規に作成する。引数の中にnullが存在する場合SQLエラーが発生する。
+     * 特定のポイントを新規に作成する。ポイント名が既存のものである場合処理を行わないため、呼び出す前に既に同じ名前のポイントが存在しないか確認するプロセスを挟むこと。
      *
      * @param username ポイントを作成するプレイヤーの名前 , not {@code null}
      * @param pointname 作成するポイントの名前 , not {@code null}
@@ -65,8 +85,26 @@ public class SQLite3DataProvider {
      * @param pos ポイントを作成するプレイヤーの座標 , not {@code null}
      * @throws Exception 引数がnullだった場合。
      */
-    private void addOriginalPoint(String username, String pointname, int type, Position pos) {
-        return;
+    public void addOriginalPoint(String username, String pointname, Position pos, int type, String pass) {
+        try {
+            if (existsOriginalPointByPointName(pointname)) return;
+
+            String sql = "INSERT INTO OriginalPoint (owner, name, x, y, z, level, type, psss) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, username);
+            statement.setString(2, pointname);
+            statement.setInt(3, (int) pos.x);
+            statement.setInt(4, (int) pos.y);
+            statement.setInt(5, (int) pos.z);
+            statement.setString(6, pos.level.getName());
+            statement.setInt(7, type);
+            statement.setString(8, pass);
+
+            statement.executeUpdate();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -76,8 +114,77 @@ public class SQLite3DataProvider {
      * @param pointname 削除する対象のポイントの名前 , not {@code null}
      * @throws Exception 引数がnullだった場合。
      */
-    private void removeOriginalPoint(String username, String pointname) {
-        return;
+    public void removeOriginalPoint(String username, String pointname) {
+        try {
+            if (!existsOriginalPointByPointName(pointname)) return;
+
+            String sql = "DELETE FROM OriginalPoint WHERE owner = ? AND name = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, username);
+            statement.setString(2, pointname);
+
+            statement.executeUpdate();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * pointnameのポイントのデータを取得します。
+     *
+     * @param pointname データを取得したいポイントの名前 , not {@code null}
+     * @return 指定されたポイントのデータが入ったマップ
+     */
+    public HashMap<String, Object> getOriginalPointData(String pointname) {
+        try {
+            if (!existsOriginalPointByPointName(pointname)) return null;
+
+            String sql = "SELECT owner, name, x, z, y, level, type, pass WHERE name = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, pointname);
+
+            HashMap<String, Object> map = new LinkedHashMap<>();
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                map.put("owner", rs.getString("owner"));
+                map.put("name", rs.getString("name"));
+                map.put("x", rs.getInt("x"));
+                map.put("y", rs.getInt("y"));
+                map.put("z", rs.getInt("z"));
+                map.put("level", rs.getString("level"));
+                map.put("type", rs.getInt("type"));
+                map.put("pass", rs.getString("pass"));
+            }
+
+            statement.close();
+            return map;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * ポイント一覧を取得
+     *
+     * @return すべてのポイントの名前が入力されたリストを返す
+     */
+    public List<String> getAllOriginalPoint() {
+        try {
+            Statement statement = connection.createStatement();
+            statement.execute("SELECT name FROM OriginalPoint");
+            List<String> list = new ArrayList<>();
+            ResultSet rs = statement.getResultSet();
+            while (rs.next()) {
+                list.add(rs.getString("name"));
+            }
+            statement.close();
+            return list;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -87,7 +194,23 @@ public class SQLite3DataProvider {
      * @return 引数で渡されたプレイヤーが管理権を持つポイントのリスト
      * @throws Exception 引数がnullだった場合。
      */
-    private List<String> getOwnOriginalPointByPlayerName(String username) {
+    public List<String> getOwnOriginalPointByPlayerName(String username) {
+        try {
+            String sql = "SELECT name FORM OriginalPoint WHERE owner = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, username);
+
+            List<String> list = new ArrayList<>();
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                list.add("name");
+            }
+
+            statement.close();
+            return list;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
@@ -96,7 +219,23 @@ public class SQLite3DataProvider {
      *
      * @return パスワードが設定されているポイントのリストを返す。
      */
-    private List<String> getPassLimitedPointByPlayerName() {
+    public List<String> getPassLimitedPoint() {
+        try {
+            String sql = "SELECT name FROM OriginalPoint WHERE type = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, PointType.POINT_TYPE_PASS_LIMITED);
+
+            List<String> list = new ArrayList<>();
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getString("name"));
+            }
+
+            statement.close();
+            return list;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
@@ -105,7 +244,23 @@ public class SQLite3DataProvider {
      *
      * @return 公開設定のポイントのリストを返す。
      */
-    private List<String> getPublicOriginalPoint() {
+    public List<String> getPublicOriginalPoint() {
+        try {
+            String sql = "SELECT name FROM OriginalPoint WHERE type = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, PointType.POINT_TYPE_PUBLIC);
+
+            List<String> list = new ArrayList<>();
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getString("name"));
+            }
+
+            statement.close();
+            return list;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 }
