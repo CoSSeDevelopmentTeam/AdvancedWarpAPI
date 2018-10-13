@@ -1,34 +1,59 @@
 package net.comorevi.cosse.warpapi;
 
+import cn.nukkit.level.Position;
 import cn.nukkit.plugin.PluginBase;
-import itsu.mcbe.form.base.Form;
+
+import java.util.List;
+import java.util.Map;
 
 public class AdvancedWarpAPI extends PluginBase {
 
-    private FormProcessor formProcessor;
+    private static AdvancedWarpAPI instance;
     private SQLite3DataProvider provider;
 
     //////////////////////
     ////    A P I     ////
     //////////////////////
-    public static Form getFormMenu() {
-        return null;
+    public static AdvancedWarpAPI getInstance() {
+        return instance;
     }
 
-    public static Form getFormWarp() {
-        return null;
+    public boolean exsistsPoint(String pointname) {
+        return getProvider().existsOriginalPointByPointName(pointname);
     }
 
-    public static Form getFormAdd() {
-        return null;
+    public void addPoint(String username, String pointname, Position pos, int type, String pass) {
+        getProvider().addOriginalPoint(username, pointname, pos, type, pass);
     }
 
-    public static Form getFormRemove() {
-        return null;
+    public void removePoint(String username, String pointname) {
+        getProvider().removeOriginalPoint(username, pointname);
     }
 
-    public FormProcessor getFormProcessor() {
-        return null;
+    public Map<String, Object> getPointData(String pointname) {
+        return getProvider().getOriginalPointData(pointname);
+    }
+
+    public List<String> getPointNameList() {
+        return getProvider().getAllOriginalPoint();
+    }
+
+    public List<String> getOwnPointNameList(String username) {
+        return getProvider().getOwnOriginalPointByPlayerName(username);
+    }
+
+    public List<String> getPassLimitedPointNameList() {
+        return getProvider().getPassLimitedPoint();
+    }
+
+    public List<String> getPublicPointNameList() {
+        return getProvider().getPublicOriginalPoint();
+    }
+
+    public Position getDestinationPositon(String pointname) {
+        Map<String, Object> pointMap = getProvider().getOriginalPointData(pointname);
+        Position pos = new Position((int) pointMap.get("x"), (int) pointMap.get("y"), (int) pointMap.get("z"), this.getServer().getLevelByName(String.valueOf(pointMap.get("level"))));
+        return pos;
     }
 
     //////////////////////
@@ -46,21 +71,11 @@ public class AdvancedWarpAPI extends PluginBase {
 
     private void initialize() {
         this.getDataFolder().mkdirs();
-        this.formProcessor = new FormProcessor();
         this.provider = new SQLite3DataProvider(this);
-        this.getServer().getPluginManager().registerEvents(new EventListener(this), this);
         return;
     }
 
-    private SQLite3DataProvider getProvider() {
+    public SQLite3DataProvider getProvider() {
         return this.provider;
-    }
-
-    private boolean passMatch(String value) {
-        return false;
-    }
-
-    private String convertStringQuotationMark(String value) {
-        return null;
     }
 }

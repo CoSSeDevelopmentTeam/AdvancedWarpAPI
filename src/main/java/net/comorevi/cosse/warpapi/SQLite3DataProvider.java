@@ -3,10 +3,7 @@ package net.comorevi.cosse.warpapi;
 import cn.nukkit.level.Position;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 public class SQLite3DataProvider {
 
@@ -136,15 +133,15 @@ public class SQLite3DataProvider {
      * @param pointname データを取得したいポイントの名前 , not {@code null}
      * @return 指定されたポイントのデータが入ったマップ
      */
-    public HashMap<String, Object> getOriginalPointData(String pointname) {
+    public Map<String, Object> getOriginalPointData(String pointname) {
         try {
-            if (!existsOriginalPointByPointName(pointname)) return null;
+            if (!existsOriginalPointByPointName(pointname)) return Collections.emptyMap();
 
             String sql = "SELECT owner, name, x, z, y, level, type, pass WHERE name = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, pointname);
 
-            HashMap<String, Object> map = new LinkedHashMap<>();
+            Map<String, Object> map = new LinkedHashMap<>();
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 map.put("owner", rs.getString("owner"));
@@ -184,7 +181,7 @@ public class SQLite3DataProvider {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return Collections.emptyList();
     }
 
     /**
@@ -211,7 +208,7 @@ public class SQLite3DataProvider {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return Collections.emptyList();
     }
 
     /**
@@ -236,7 +233,7 @@ public class SQLite3DataProvider {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return Collections.emptyList();
     }
 
     /**
@@ -261,6 +258,6 @@ public class SQLite3DataProvider {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return Collections.emptyList();
     }
 }
