@@ -193,7 +193,7 @@ public class SQLite3DataProvider {
      */
     public List<String> getOwnOriginalPointByPlayerName(String username) {
         try {
-            String sql = "SELECT name FORM OriginalPoint WHERE owner = ?";
+            String sql = "SELECT name FROM OriginalPoint WHERE owner = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
 
