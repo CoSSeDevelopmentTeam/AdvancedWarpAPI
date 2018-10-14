@@ -62,6 +62,7 @@ public class AdvancedWarpAPI extends PluginBase {
     @Override
     public void onEnable() {
         initialize();
+        instance = this;
     }
 
     @Override
