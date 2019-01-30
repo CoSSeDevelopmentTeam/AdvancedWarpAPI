@@ -86,7 +86,7 @@ public class SQLite3DataProvider {
         try {
             if (existsOriginalPointByPointName(pointname)) return;
 
-            String sql = "INSERT INTO OriginalPoint (owner, name, x, y, z, level, type, psss) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO OriginalPoint (owner, name, x, y, z, level, type, pass) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, pointname);
