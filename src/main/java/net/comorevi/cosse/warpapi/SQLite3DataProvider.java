@@ -200,7 +200,7 @@ public class SQLite3DataProvider {
             List<String> list = new ArrayList<>();
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                list.add("name");
+                list.add(rs.getString("name"));
             }
 
             statement.close();
