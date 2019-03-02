@@ -52,7 +52,7 @@ public class AdvancedWarpAPI extends PluginBase {
 
     public Position getDestinationPositon(String pointname) {
         Map<String, Object> pointMap = getProvider().getOriginalPointData(pointname);
-        Position pos = new Position((int) pointMap.get("x"), (int) pointMap.get("y"), (int) pointMap.get("z"), this.getServer().getLevelByName(String.valueOf(pointMap.get("level"))));
+        Position pos = new Position((int) pointMap.get("x") + 0.5, (int) pointMap.get("y"), (int) pointMap.get("z") + 0.5, this.getServer().getLevelByName(String.valueOf(pointMap.get("level"))));
         return pos;
     }
 

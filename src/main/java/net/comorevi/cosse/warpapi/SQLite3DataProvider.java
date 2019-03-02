@@ -63,10 +63,16 @@ public class SQLite3DataProvider {
             statement.setQueryTimeout(30);
             statement.setString(1, pointname);
 
-            boolean result = statement.executeQuery().next();
-            statement.close();
-
-            return result;
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                rs.close();
+                statement.close();
+                return true;
+            } else {
+                rs.close();
+                statement.close();
+                return false;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -137,7 +143,7 @@ public class SQLite3DataProvider {
         try {
             if (!existsOriginalPointByPointName(pointname)) return Collections.emptyMap();
 
-            String sql = "SELECT owner, name, x, z, y, level, type, pass WHERE name = ?";
+            String sql = "SELECT owner, name, x, z, y, level, type, pass FROM OriginalPoint WHERE name = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, pointname);
 
